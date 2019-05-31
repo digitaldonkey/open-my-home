@@ -1,0 +1,95 @@
+<!doctype html>
+<html class="no-js" lang="">
+	<head>
+		<meta charset="utf-8">
+		<title>
+			Unlock my Home
+		</title>
+		<script src="https://unpkg.com/vue/dist/vue.min.js">
+		</script>
+		<script src="https://unpkg.com/web3ready/dist/web3-ready.min.js">
+		</script>
+		<link rel="stylesheet" href="https://unpkg.com/web3ready/dist/web3Ready-demo.css">
+	</head>
+	<body>
+		<h1>
+			Unlock my Home
+		</h1>
+		<hr>
+		<web3-ready dapp-name="nloc my Home DappU" required-network="1" rpc-url="ws://infura.io/drupal" enable-providers="metamask,walletConnect">
+		</web3-ready>
+		<hr>
+		<div id="web3Content" style="display: none;">
+			<button id="web3Button">
+				Open Door
+			</button>
+		</div>
+		<p id="access-ok" style="display: none; color: ForestGreen;">
+			&#x2714; Successfully opened
+		</p>
+		<p id="access-denied" style="display: none; color: darkred;">
+			&#10007; Access denied
+		</p>
+
+		<script>
+			var attached = false
+			window.addEventListener('web3Ready', function (event) {
+			    const {web3} = event.detail
+			    // Still inconsistently returned
+			    const account = web3.utils.toChecksumAddress(event.detail.account)
+			    if (account && web3 && !attached) {
+			        console.log('Attaching action')
+			        attached = true
+                    window.addEventListener('click', function (event) {
+                        if(event.target.id !== 'web3Button') return;
+                        console.log('Click', {account, web3 })
+                        event.preventDefault();
+                        getChallenge(account, web3)
+                    });
+			    document.getElementById('web3Content').style.display = 'block';
+			    }
+			});
+
+			function getChallenge(account, web3) {
+			    console.log('Requesting challenge...')
+			    fetch(`//${location.host}/api/get/${account}`)
+			      .then(function(response) {
+			        console.log(`//${location.host}/api/get/${account}`, response)
+			        return response.json()
+			      })
+			      .then(function(myJson) {
+			        web3.eth.personal.sign(myJson.challenge, myJson.pubkey, null,
+			          function (error, result) {
+			            if(!error) {
+			              console.log('HELLO SIGNED', result)
+			              submitSignature (myJson.pubkey, result)
+			            }
+			            else {
+			              console.log('Error at web3.eth.personal.sign', {error, result})
+			            }
+			          }
+			        )
+			      })
+			      .catch(function(error, response) {
+			        console.log('Error requesting challenge...', {error, response})
+			      });
+			}
+
+			function submitSignature (account, signature) {
+			  fetch(`//${location.host}/api/submit/${account}/${signature}`)
+			    .then(function(response) {
+			        let access = 'access-denied'
+			        if (response.status == 200){
+			           access = 'access-ok'
+			        }
+			        console.log(access)
+			        document.getElementById(access).style.display = 'block';
+			    })
+			    .catch(function() {
+			        // This is where you run code if the server returns any errors
+			    });
+			}
+
+		</script>
+	</body>
+</html>
