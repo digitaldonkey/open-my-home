@@ -1,8 +1,7 @@
-from flask import Flask, session, jsonify, Response, send_from_directory, render_template
+from flask import Flask, session, jsonify, Response, send_from_directory, render_template, make_response
 import RPi.GPIO as GPIO
 import time
 import re
-from flask import make_response
 import json
 from os import urandom, getenv
 import datetime
